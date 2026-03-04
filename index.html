@@ -1,0 +1,183 @@
+
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0e1a">
+<title>ExpertOption Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0a0e1a;color:#fff;font-family:'Tajawal',sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.topbar{background:#0d1225;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a2040;flex-shrink:0}
+.pair-select-btn{background:#1a2240;border:1px solid #2a3560;border-radius:8px;padding:6px 12px;color:#fff;font-size:13px;font-weight:700;font-family:'Tajawal',sans-serif;cursor:pointer;display:flex;align-items:center;gap:6px}
+.chart-area{flex:1;position:relative;background:#0a0e1a;overflow:hidden}
+canvas#mainChart{width:100%;height:100%;display:block}
+.signal-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:10}
+.signal-big{font-size:56px;font-weight:900;letter-spacing:2px;font-family:monospace;text-shadow:0 0 40px currentColor;opacity:0;transition:all .5s}
+.signal-big.show{opacity:1}
+.signal-big.buy{color:#00c87a}
+.signal-big.sell{color:#ff3d57}
+.signal-big.none{color:#888;font-size:18px}
+.strength-badge{position:absolute;top:12px;right:12px;background:#0d1225cc;border:1px solid #2a3560;border-radius:10px;padding:8px 12px;font-size:12px;z-index:10;backdrop-filter:blur(4px)}
+.strength-label{color:#888;font-size:10px;margin-bottom:3px}
+.strength-val{font-weight:800;font-size:16px}
+.info-tl{position:absolute;top:12px;left:12px;background:#0d1225cc;border:1px solid #2a3560;border-radius:10px;padding:8px 12px;font-size:11px;z-index:10;backdrop-filter:blur(4px)}
+.info-tl .price-live{font-size:16px;font-weight:800;font-family:monospace;color:#fff;margin-bottom:2px}
+.info-tl .trend-badge{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;display:inline-block}
+.bottom-panel{background:#0d1225;border-top:1px solid #1a2040;flex-shrink:0}
+.signal-bar{display:flex;gap:0;height:52px}
+.sig-buy{flex:1;background:linear-gradient(135deg,#00a86b,#00c87a);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.sig-sell{flex:1;background:linear-gradient(135deg,#cc1f3a,#ff3d57);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.sig-label{font-size:15px;font-weight:800;letter-spacing:1px}
+.sig-pct{font-size:11px;opacity:.8}
+.sig-none-bar{flex:1;background:#1a2240;display:flex;align-items:center;justify-content:center;font-size:12px;color:#666}
+.controls-row{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;gap:10px}
+.time-box{background:#1a2240;border:1px solid #2a3560;border-radius:8px;padding:7px 14px;font-size:12px;color:#fff;display:flex;align-items:center;gap:6px;min-width:110px;justify-content:center}
+.analyze-mini-btn{flex:1;background:linear-gradient(135deg,#6d28d9,#1d4ed8);border:none;border-radius:8px;padding:10px;color:#fff;font-size:13px;font-weight:800;font-family:'Tajawal',sans-serif;cursor:pointer;box-shadow:0 0 16px #6d28d944}
+.analyze-mini-btn:disabled{background:#1a2240;color:#555;box-shadow:none}
+.reasons-panel{background:#0d1225;border-top:1px solid #1a2040;padding:10px 14px;max-height:0;overflow:hidden;transition:max-height .4s ease}
+.reasons-panel.open{max-height:200px;overflow-y:auto}
+.reason-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #1a2040}
+.reason-row:last-child{border-bottom:none}
+.r-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.r-text{font-size:11px;color:#a0a0c0}
+.tf-row{display:flex;gap:6px;padding:8px 14px 0}
+.tf-pill{flex:1;text-align:center;padding:5px 4px;border-radius:6px;font-size:10px;font-weight:700;border:1px solid #2a3560;background:#1a2240;color:#555}
+.tf-pill.bull{background:#00c87a22;border-color:#00c87a55;color:#00c87a}
+.tf-pill.bear{background:#ff3d5722;border-color:#ff3d5755;color:#ff3d57}
+.modal-bg{position:fixed;inset:0;background:#000a;z-index:100;display:none;align-items:flex-end}
+.modal-bg.show{display:flex}
+.modal{background:#0d1225;border-radius:18px 18px 0 0;width:100%;padding:16px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:800;margin-bottom:14px;text-align:center;color:#888}
+.modal-group{margin-bottom:12px}
+.modal-group-label{font-size:10px;color:#555;margin-bottom:7px;letter-spacing:1px;text-transform:uppercase}
+.modal-pairs{display:flex;flex-wrap:wrap;gap:7px}
+.modal-pair{padding:7px 14px;border-radius:8px;border:1px solid #2a3560;background:#1a2240;color:#aaa;font-size:12px;font-weight:700;cursor:pointer;font-family:'Tajawal',sans-serif}
+.modal-pair.active{background:linear-gradient(135deg,#6d28d9,#1d4ed8);border-color:#6d28d9;color:#fff}
+.rsi-bar-wrap{position:absolute;bottom:0;left:0;right:0;height:28px;background:#0a0e1acc;border-top:1px solid #1a2040;display:flex;align-items:center;padding:0 12px;gap:8px;z-index:5}
+.rsi-label{font-size:10px;color:#555;min-width:28px}
+.rsi-track{flex:1;height:5px;background:#1a2240;border-radius:3px;overflow:hidden}
+.rsi-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.rsi-val{font-size:10px;font-family:monospace;min-width:30px;text-align:left}
+.loading-overlay{position:absolute;inset:0;background:#0a0e1aee;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50;gap:12px}
+.loading-overlay.show{display:flex}
+.loading-step{font-size:13px;color:#888}
+.spinner{width:36px;height:36px;border:3px solid #1a2240;border-top-color:#6d28d9;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.disclaimer{background:#ff3d5709;border-top:1px solid #ff3d5720;padding:5px;text-align:center;font-size:9px;color:#444;flex-shrink:0}
+.ai-panel{background:#0d0d22;border-top:1px solid #6d28d933;padding:8px 14px;font-size:11px;color:#7070a0;line-height:1.6;max-height:0;overflow:hidden;transition:max-height .4s}
+.ai-panel.open{max-height:120px;overflow-y:auto}
+.ai-panel-title{font-size:10px;color:#6d28d9;margin-bottom:4px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <button class="pair-select-btn" onclick="openModal()">
+    <span id="selectedPairLabel">GBP/USD</span>
+    <span style="color:#888;font-size:10px">▼</span>
+  </button>
+  <div style="text-align:center">
+    <div style="font-size:10px;color:#555">التحليل الفني</div>
+    <div style="font-size:11px;color:#6d28d9;font-weight:700">Twelve Data Live</div>
+  </div>
+  <div style="color:#888;font-size:11px">تجريبي</div>
+</div>
+<div class="chart-area">
+  <canvas id="mainChart"></canvas>
+  <div class="info-tl">
+    <div class="price-live" id="livePrice">--</div>
+    <div id="trendBadge" class="trend-badge" style="background:#1a2240;color:#888">--</div>
+  </div>
+  <div class="strength-badge" id="strengthBadge" style="display:none">
+    <div class="strength-label">قوة الإشارة</div>
+    <div class="strength-val" id="strengthVal">--</div>
+  </div>
+  <div class="signal-overlay">
+    <div class="signal-big" id="signalBig"></div>
+    <div style="font-size:11px;color:#888;margin-top:6px" id="signalSub"></div>
+  </div>
+  <div class="rsi-bar-wrap" id="rsiBar" style="display:none">
+    <div class="rsi-label">RSI</div>
+    <div class="rsi-track"><div class="rsi-fill" id="rsiFill" style="width:50%"></div></div>
+    <div class="rsi-val" id="rsiVal">--</div>
+  </div>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-step" id="loadingStep">جاري التحليل...</div>
+  </div>
+</div>
+<div class="bottom-panel">
+  <div class="tf-row" id="tfRow" style="display:none">
+    <div class="tf-pill" id="tf1m">1m</div>
+    <div class="tf-pill" id="tf5m">5m</div>
+    <div class="tf-pill" id="tf15m">15m</div>
+    <div style="flex:2;display:flex;align-items:center;justify-content:flex-end;padding-left:4px">
+      <span style="font-size:10px;color:#555" id="lastUpdate"></span>
+    </div>
+  </div>
+  <div class="signal-bar" id="signalBar">
+    <div class="sig-none-bar" style="flex:1">اضغط تحليل لبدء الفحص</div>
+  </div>
+  <div id="reasonsToggle" style="display:none;padding:6px 14px;cursor:pointer;align-items:center;justify-content:space-between" onclick="toggleReasons()">
+    <span style="font-size:11px;color:#6d28d9;font-weight:700">📋 أسباب الدخول</span>
+    <span style="font-size:10px;color:#555" id="toggleArrow">▲</span>
+  </div>
+  <div class="reasons-panel" id="reasonsPanel"></div>
+  <div id="aiToggle" style="display:none;padding:4px 14px;cursor:pointer" onclick="toggleAI()">
+    <span style="font-size:11px;color:#6d28d999;font-weight:700">🤖 تحليل AI</span>
+  </div>
+  <div class="ai-panel" id="aiPanel">
+    <div class="ai-panel-title">تحليل ذكاء اصطناعي</div>
+    <div id="aiText" style="color:#7070a0;font-size:11px;line-height:1.7"></div>
+  </div>
+  <div class="controls-row">
+    <div class="time-box">⏱ <span id="expiryLabel">--</span></div>
+    <button class="analyze-mini-btn" id="analyzeBtn" onclick="startAnalysis()">🔍 تحليل</button>
+    <div style="background:#1a2240;border:1px solid #2a3560;border-radius:8px;padding:7px 10px;text-align:center;min-width:60px">
+      <div style="font-size:9px;color:#444">SL</div>
+      <div id="slLabel" style="color:#ff3d57;font-weight:700;font-family:monospace;font-size:10px">--</div>
+    </div>
+    <div style="background:#1a2240;border:1px solid #2a3560;border-radius:8px;padding:7px 10px;text-align:center;min-width:60px">
+      <div style="font-size:9px;color:#444">TP</div>
+      <div id="tpLabel" style="color:#00c87a;font-weight:700;font-family:monospace;font-size:10px">--</div>
+    </div>
+  </div>
+</div>
+<div class="disclaimer">⚠️ للتحليل التعليمي فقط • لا يضمن أي ربح • التداول مخاطرة عالية</div>
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">اختر الزوج</div>
+    <div class="modal-group"><div class="modal-group-label">فوركس</div><div class="modal-pairs" id="forexPairs"></div></div>
+    <div class="modal-group"><div class="modal-group-label">كريبتو</div><div class="modal-pairs" id="cryptoPairs"></div></div>
+    <div class="modal-group"><div class="modal-group-label">سلع</div><div class="modal-pairs" id="commodityPairs"></div></div>
+  </div>
+</div>
+<script>
+const API_KEY="f25a3c2bafb84794896db3da1d0c4b74";
+const PAIRS=[{s:"EUR/USD",t:"forex"},{s:"GBP/USD",t:"forex"},{s:"USD/JPY",t:"forex"},{s:"AUD/USD",t:"forex"},{s:"USD/CAD",t:"forex"},{s:"EUR/JPY",t:"forex"},{s:"GBP/JPY",t:"forex"},{s:"USD/CHF",t:"forex"},{s:"NZD/USD",t:"forex"},{s:"BTC/USD",t:"crypto"},{s:"ETH/USD",t:"crypto"},{s:"BNB/USD",t:"crypto"},{s:"XAU/USD",t:"commodity"},{s:"XAG/USD",t:"commodity"}];
+let sel=PAIRS[1],candles5m=null,lastSig=null,reasonsOpen=false,aiOpen=false;
+["forex","crypto","commodity"].forEach(type=>{const el=document.getElementById(type+"Pairs");PAIRS.filter(p=>p.t===type).forEach(p=>{const b=document.createElement("button");b.className="modal-pair"+(p.s===sel.s?" active":"");b.textContent=p.s;b.onclick=()=>{sel=p;selectPair(p,b);};el.appendChild(b);});});
+function selectPair(p,btn){document.querySelectorAll(".modal-pair").forEach(b=>b.classList.remove("active"));btn.classList.add("active");document.getElementById("selectedPairLabel").textContent=p.s;closeModal();}
+function openModal(){document.getElementById("modalBg").classList.add("show");}
+function closeModal(e){if(!e||e.target===document.getElementById("modalBg"))document.getElementById("modalBg").classList.remove("show");}
+function ema(p,n){const k=2/(n+1);let e=p[0];return p.map(v=>{e=v*k+e*(1-k);return e;});}
+function rsiCalc(cl,p=14){const g=[],l=[];for(let i=1;i<cl.length;i++){const d=cl[i]-cl[i-1];g.push(d>0?d:0);l.push(d<0?-d:0);}if(g.length<p)return cl.map(()=>50);let ag=g.slice(0,p).reduce((a,b)=>a+b)/p,al=l.slice(0,p).reduce((a,b)=>a+b)/p;const r=new Array(p+1).fill(50);for(let i=p;i<g.length;i++){ag=(ag*(p-1)+g[i])/p;al=(al*(p-1)+l[i])/p;r.push(al===0?100:100-100/(1+ag/al));}return r;}
+function macdCalc(cl){const e12=ema(cl,12),e26=ema(cl,26),m=e12.map((v,i)=>v-e26[i]),s=ema(m,9);return{hist:m.map((v,i)=>v-s[i])};}
+function bbCalc(cl,p=20){return cl.map((_,i)=>{if(i<p-1)return{u:null,m:null,l:null};const sl=cl.slice(i-p+1,i+1),mn=sl.reduce((a,b)=>a+b)/p,sd=Math.sqrt(sl.reduce((a,b)=>a+Math.pow(b-mn,2),0)/p);return{u:mn+2*sd,m:mn,l:mn-2*sd};});}
+function patsCalc(c){const r=[],n=c.length-1;if(n<2)return r;const cv=c[n],pv=c[n-1],body=Math.abs(cv.close-cv.open),range=cv.high-cv.low||.0001,lw=Math.min(cv.open,cv.close)-cv.low,uw=cv.high-Math.max(cv.open,cv.close);if(body/range<.1)r.push({n:"Doji",b:"neutral"});if(lw>body*2&&uw<body*.5)r.push({n:"Hammer",b:"bullish"});if(uw>body*2&&lw<body*.5)r.push({n:"Shooting Star",b:"bearish"});if(cv.open<pv.close&&cv.close>pv.open&&pv.close<pv.open)r.push({n:"Bullish Engulfing",b:"bullish"});if(cv.open>pv.close&&cv.close<pv.open&&pv.close>pv.open)r.push({n:"Bearish Engulfing",b:"bearish"});return r;}
+function analyzeTF(candles){const cl=candles.map(c=>c.close),n=cl.length-1;const e9=ema(cl,9),e21=ema(cl,21),rs=rsiCalc(cl),{hist}=macdCalc(cl),bnd=bbCalc(cl);const pats=patsCalc(candles);const rb=candles.slice(-8).filter(c=>c.close>c.open).length;let trend="SIDEWAYS";if(e9[n]>e21[n]&&rb>=6)trend="UPTREND";else if(e9[n]<e21[n]&&rb<=2)trend="DOWNTREND";const curRSI=rs[rs.length-1]??50,curBB=bnd[n],price=cl[n];let bull=0,bear=0;const reasons=[];if(curRSI<28){bull+=2.5;reasons.push({t:`RSI تشبع بيع (${curRSI.toFixed(1)})`,b:"bull"});}else if(curRSI<35){bull+=1.5;reasons.push({t:`RSI منطقة بيع (${curRSI.toFixed(1)})`,b:"bull"});}else if(curRSI>72){bear+=2.5;reasons.push({t:`RSI تشبع شراء (${curRSI.toFixed(1)})`,b:"bear"});}else if(curRSI>65){bear+=1.5;reasons.push({t:`RSI منطقة شراء (${curRSI.toFixed(1)})`,b:"bear"});}else if(curRSI>52)bull+=.5;else if(curRSI<48)bear+=.5;const mCU=hist[n]>0&&hist[n-1]<=0,mCD=hist[n]<0&&hist[n-1]>=0;if(mCU){bull+=2.5;reasons.push({t:"MACD تقاطع صاعد",b:"bull"});}else if(mCD){bear+=2.5;reasons.push({t:"MACD تقاطع هابط",b:"bear"});}else if(hist[n]>0&&hist[n]>hist[n-1]){bull+=.8;reasons.push({t:"MACD زخم صاعد",b:"bull"});}else if(hist[n]<0&&hist[n]<hist[n-1]){bear+=.8;reasons.push({t:"MACD زخم هابط",b:"bear"});}const eCU=e9[n]>e21[n]&&e9[n-1]<=e21[n-1],eCD=e9[n]<e21[n]&&e9[n-1]>=e21[n-1];if(eCU){bull+=2;reasons.push({t:"EMA9 قطع EMA21 صعوداً",b:"bull"});}else if(eCD){bear+=2;reasons.push({t:"EMA9 قطع EMA21 هبوطاً",b:"bear"});}else if(e9[n]>e21[n]){bull+=.7;reasons.push({t:"EMA9 فوق EMA21",b:"bull"});}else{bear+=.7;reasons.push({t:"EMA9 تحت EMA21",b:"bear"});}if(curBB.l&&price<=curBB.l){bull+=2;reasons.push({t:"السعر عند حد Bollinger السفلي",b:"bull"});}else if(curBB.u&&price>=curBB.u){bear+=2;reasons.push({t:"السعر عند حد Bollinger العلوي",b:"bear"});}for(const p of pats){if(p.b==="bullish"){bull+=1.5;reasons.push({t:`نمط: ${p.n}`,b:"bull"});}if(p.b==="bearish"){bear+=1.5;reasons.push({t:`نمط: ${p.n}`,b:"bear"});}}if(trend==="UPTREND"){bull+=1.2;reasons.push({t:"الترند صاعد",b:"bull"});}else if(trend==="DOWNTREND"){bear+=1.2;reasons.push({t:"الترند هابط",b:"bear"});}return{bull,bear,reasons,trend,rsi:curRSI,hist:hist[n],e9:e9[n],e21:e21[n],price,bb:curBB};}
+function genSignal(tf1,tf5,tf15){let bF=0,beF=0,cf=[];for(const[tf,d]of[["1m",tf1],["5m",tf5],["15m",tf15]]){const diff=d.bull-d.bear;if(diff>2.5){bF++;cf.push(tf);}else if(diff<-2.5){beF++;cf.push(tf);}}if(bF<2&&beF<2)return{signal:"NONE",reason:"لا توافق بين الفريمات",cf:[]};if(Math.abs(bF-beF)<2)return{signal:"NONE",reason:"السوق متضارب",cf};const dir=bF>beF?"BUY":"SELL",tb=dir==="BUY"?"bull":"bear";const allR=[...tf1.reasons,...tf5.reasons,...tf15.reasons];const confR=allR.filter(r=>r.b===tb);if(confR.length<3)return{signal:"NONE",reason:"أقل من 3 تأكيدات",cf};if(dir==="BUY"&&tf15.trend==="DOWNTREND")return{signal:"NONE",reason:"ضد الترند الرئيسي",cf};if(dir==="SELL"&&tf15.trend==="UPTREND")return{signal:"NONE",reason:"ضد الترند الرئيسي",cf};const raw=dir==="BUY"?(tf1.bull+tf5.bull+tf15.bull)/3:(tf1.bear+tf5.bear+tf15.bear)/3;const strength=Math.min(10,Math.max(1,Math.round(raw*1.1)));const price=tf5.price;const slD=dir==="BUY"?price-(tf5.bb.l||price*.998):(tf5.bb.u||price*1.002)-price;const sl=dir==="BUY"?price-slD*1.1:price+slD*1.1;const tp=dir==="BUY"?price+slD*2:price-slD*2;const rr=(Math.abs(tp-price)/Math.abs(sl-price)).toFixed(2);const expiry=cf.includes("15m")?"15 دقيقة":cf.includes("5m")?"5-10 دقائق":"2-3 دقائق";const topR=[...new Set(confR.map(r=>r.t))].slice(0,5);const dec=price>100?2:price>1?4:5;return{signal:dir,strength,cf,expiry,reasons:topR,sl:sl.toFixed(dec),tp:tp.toFixed(dec),price:price.toFixed(dec),rr,trend:tf15.trend,rsi:tf5.rsi,tf1,tf5,tf15};}
+function drawChart(candles){const canvas=document.getElementById("mainChart");const W=canvas.offsetWidth,H=canvas.offsetHeight;canvas.width=W;canvas.height=H;const ctx=canvas.getContext("2d");ctx.clearRect(0,0,W,H);const prices=candles.slice(-60).map(c=>c.close);const mn=Math.min(...prices),mx=Math.max(...prices),range=mx-mn||.0001;const pad=20,cw=(W-pad*2)/prices.length;const rising=prices[prices.length-1]>=prices[0];const color=rising?"#00c87a":"#ff3d57";ctx.strokeStyle="#1a2040";ctx.lineWidth=.5;for(let i=0;i<5;i++){const y=pad+(H-pad*2)*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}const pts=prices.map((p,i)=>({x:pad+i*cw+cw/2,y:pad+(H-pad*2)*(1-(p-mn)/range)}));ctx.beginPath();ctx.moveTo(0,H);pts.forEach(p=>ctx.lineTo(p.x,p.y));ctx.lineTo(W,H);ctx.closePath();const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,color+"33");grad.addColorStop(1,color+"00");ctx.fillStyle=grad;ctx.fill();ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin="round";ctx.stroke();const lp=pts[pts.length-1];ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(0,lp.y);ctx.lineTo(W,lp.y);ctx.strokeStyle=color+"66";ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(lp.x,lp.y,4,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();}
+async function fetchCandles(symbol,interval,size=90){const url=`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${size}&apikey=${API_KEY}`;const r=await fetch(url);const d=await r.json();if(d.status==="error"||!d.values)throw new Error(d.message||"خطأ في API");return d.values.reverse().map(v=>({open:+v.open,high:+v.high,low:+v.low,close:+v.close,volume:+(v.volume||1000)}));}
+function setLoading(show,step=""){document.getElementById("loadingOverlay").classList.toggle("show",show);document.getElementById("loadingStep").textContent=step;document.getElementById("analyzeBtn").disabled=show;}
+function toggleReasons(){reasonsOpen=!reasonsOpen;document.getElementById("reasonsPanel").classList.toggle("open",reasonsOpen);document.getElementById("toggleArrow").textContent=reasonsOpen?"▼":"▲";}
+function toggleAI(){aiOpen=!aiOpen;document.getElementById("aiPanel").classList.toggle("open",aiOpen);}
+function renderSignal(sig){const dec=sig.price>100?2:sig.price>1?4:5;document.getElementById("livePrice").textContent=parseFloat(sig.price).toFixed(dec);const tb=document.getElementById("trendBadge");tb.textContent=sig.trend==="UPTREND"?"↑ صاعد":sig.trend==="DOWNTREND"?"↓ هابط":"→ عرضي";tb.style.background=sig.trend==="UPTREND"?"#00c87a22":sig.trend==="DOWNTREND"?"#ff3d5722":"#1a2240";tb.style.color=sig.trend==="UPTREND"?"#00c87a":sig.trend==="DOWNTREND"?"#ff3d57":"#888";document.getElementById("rsiBar").style.display="flex";const rsiV=sig.rsi;const rsiFill=document.getElementById("rsiFill");rsiFill.style.width=rsiV+"%";rsiFill.style.background=rsiV>70?"#ff3d57":rsiV<30?"#00c87a":"#6d28d9";document.getElementById("rsiVal").textContent=rsiV.toFixed(1);document.getElementById("rsiVal").style.color=rsiV>70?"#ff3d57":rsiV<30?"#00c87a":"#aaa";document.getElementById("tfRow").style.display="flex";["1m","5m","15m"].forEach(tf=>{const el=document.getElementById("tf"+tf);const d=tf==="1m"?sig.tf1:tf==="5m"?sig.tf5:sig.tf15;const confirmed=sig.cf&&sig.cf.includes(tf);el.className="tf-pill"+(confirmed?(d.bull>d.bear?" bull":" bear"):"");el.textContent=tf+(confirmed?(d.bull>d.bear?" ↑":" ↓"):"");});document.getElementById("lastUpdate").textContent=new Date().toLocaleTimeString("ar-SA");if(sig.signal==="NONE"){document.getElementById("signalBar").innerHTML=`<div class="sig-none-bar" style="flex:1;font-size:13px;color:#888">🔇 ${sig.reason||"لا توجد صفقة آمنة"}</div>`;const sb=document.getElementById("signalBig");sb.textContent="لا دخول";sb.className="signal-big show none";document.getElementById("signalSub").textContent=sig.reason||"";document.getElementById("strengthBadge").style.display="none";document.getElementById("reasonsToggle").style.display="none";document.getElementById("aiToggle").style.display="none";document.getElementById("expiryLabel").textContent="--";document.getElementById("slLabel").textContent="--";document.getElementById("tpLabel").textContent="--";return;}const isBuy=sig.signal==="BUY";const color=isBuy?"#00c87a":"#ff3d57";document.getElementById("signalBar").innerHTML=isBuy?`<div class="sig-buy" style="flex:1"><div class="sig-label">▲ شراء</div><div class="sig-pct">إشارة تحليلية</div></div>`:`<div class="sig-sell" style="flex:1"><div class="sig-label">▼ بيع</div><div class="sig-pct">إشارة تحليلية</div></div>`;const sb=document.getElementById("signalBig");sb.textContent=isBuy?"▲ BUY":"▼ SELL";sb.className=`signal-big show ${isBuy?"buy":"sell"}`;document.getElementById("signalSub").textContent=`${sig.cf.join(" + ")} • قوة ${sig.strength}/10`;document.getElementById("strengthBadge").style.display="block";const sv=document.getElementById("strengthVal");sv.textContent=sig.strength+"/10";sv.style.color=sig.strength>=8?"#00c87a":sig.strength>=6?"#fbbf24":"#ff6b6b";document.getElementById("expiryLabel").textContent=sig.expiry;document.getElementById("slLabel").textContent=sig.sl;document.getElementById("tpLabel").textContent=sig.tp;const rp=document.getElementById("reasonsPanel");rp.innerHTML=sig.reasons.map(r=>`<div class="reason-row"><div class="r-dot" style="background:${color}"></div><div class="r-text">${r}</div></div>`).join("");document.getElementById("reasonsToggle").style.display="flex";document.getElementById("aiToggle").style.display="block";}
+async function loadAI(sig){const el=document.getElementById("aiText");el.textContent="جاري التحليل...";const prompt=`أنت محلل فني خبير. الزوج: ${sel.s} | الإشارة: ${sig.signal} | القوة: ${sig.strength}/10 | RSI: ${sig.rsi.toFixed(1)} | الترند: ${sig.trend} | الأسباب: ${sig.reasons.join(", ")} | R:R=1:${sig.rr}. اكتب تحليلاً احترافياً مختصراً (3-4 جمل) بالعربية. لا وعود بالربح.`;try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});const d=await r.json();el.textContent=d.content?.map(b=>b.text||"").join("")||"تعذّر التحميل.";}catch{el.textContent="تعذّر تحميل التحليل التفصيلي.";}}
+function resetUI(){const sb=document.getElementById("signalBig");sb.className="signal-big";sb.textContent="";document.getElementById("signalSub").textContent="";document.getElementById("signalBar").innerHTML=`<div class="sig-none-bar" style="flex:1">جاري التحليل...</div>`;document.getElementById("strengthBadge").style.display="none";document.getElementById("strengthVal").textContent="--";document.getElementById("livePrice").textContent="--";document.getElementById("trendBadge").textContent="--";document.getElementById("trendBadge").style.background="#1a2240";document.getElementById("trendBadge").style.color="#888";document.getElementById("rsiBar").style.display="none";document.getElementById("rsiFill").style.width="50%";document.getElementById("rsiVal").textContent="--";document.getElementById("tfRow").style.display="none";["1m","5m","15m"].forEach(tf=>{const el=document.getElementById("tf"+tf);el.className="tf-pill";el.textContent=tf;});document.getElementById("lastUpdate").textContent="";document.getElementById("expiryLabel").textContent="--";document.getElementById("slLabel").textContent="--";document.getElementById("tpLabel").textContent="--";reasonsOpen=false;aiOpen=false;document.getElementById("reasonsPanel").classList.remove("open");document.getElementById("reasonsPanel").innerHTML="";document.getElementById("aiPanel").classList.remove("open");document.getElementById("aiText").textContent="";document.getElementById("reasonsToggle").style.display="none";document.getElementById("aiToggle").style.display="none";const canvas=document.getElementById("mainChart");const ctx=canvas.getContext("2d");ctx.clearRect(0,0,canvas.width,canvas.height);}
+async function startAnalysis(){resetUI();setLoading(true,"جاري تحميل بيانات 1m...");try{const c1=await fetchCandles(sel.s,"1min",90);setLoading(true,"جاري تحميل بيانات 5m...");const c5=await fetchCandles(sel.s,"5min",90);setLoading(true,"جاري تحميل بيانات 15m...");const c15=await fetchCandles(sel.s,"15min",90);setLoading(true,"جاري التحليل الفني...");candles5m=c5;const canvas=document.getElementById("mainChart");canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;drawChart(c5);const tf1=analyzeTF(c1),tf5=analyzeTF(c5),tf15=analyzeTF(c15);const sig=genSignal(tf1,tf5,tf15);lastSig=sig;renderSignal(sig);if(sig.signal!=="NONE")loadAI(sig);}catch(e){document.getElementById("signalBar").innerHTML=`<div class="sig-none-bar" style="flex:1;color:#ff8a8a;font-size:12px">⚠️ ${e.message}</div>`;}setLoading(false);}
+window.addEventListener("resize",()=>{if(candles5m)drawChart(candles5m);});
+</script>
+</body>
+</html>
